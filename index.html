@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DEAL-9 Offer-accept · Pick buyer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B0D12'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='system-ui' font-size='16' font-weight='700' fill='%23D9B45B'%3EB%3C/text%3E%3C/svg%3E">
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Binder INFRA-4 tokens. Phone-frame gallery: sale-class Mark sold → pick-buyer sheet. He RTL first, En LTR check. */
+:root{
+  --bg:#0B0D12;--bg2:#12151D;--surface:#171B25;--surface2:#1E2330;--line:#2A3040;
+  --text:#EEF1F7;--muted:#8B93A7;--gold:#D9B45B;--gold2:#F0D488;--goldInk:#1A150A;
+  --ok:#4ADE80;--danger:#F87171;--info:#60A5FA;
+  --ui:-apple-system,"SF Pro Text","Segoe UI","Noto Sans Hebrew",Arial,sans-serif;
+  --mono:ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);font-family:var(--ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:24px;
+}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:15px;color:var(--gold);margin:32px 0 12px;letter-spacing:.04em;text-transform:uppercase}
+.lead,.notes{color:var(--muted);max-width:72ch;line-height:1.55}
+.lead b,.notes b{color:var(--text)}
+.grid{display:flex;flex-wrap:wrap;gap:20px}
+.cap{font-size:12px;color:var(--muted);margin-bottom:6px;max-width:300px;line-height:1.4}
+.phone{
+  width:300px;max-width:100%;border:1px solid var(--line);border-radius:28px;
+  background:var(--bg);overflow:hidden;position:relative;font-size:13px;
+  display:flex;flex-direction:column;height:600px;
+}
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 12px;background:var(--bg2);border-bottom:1px solid var(--line);flex:none;
+}
+.hdr b{font-size:15px}
+.ib{width:28px;height:28px;border-radius:8px;background:var(--surface2);display:grid;place-items:center;flex:none}
+.body{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1;overflow:hidden}
+.row{display:flex;align-items:center;gap:8px}.sp{flex:1}
+.av{width:34px;height:34px;border-radius:50%;background:var(--surface2);display:grid;place-items:center;font-weight:700;flex:none}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.b-act{color:var(--ok);border-color:var(--ok)}.b-sold{color:var(--danger);border-color:var(--danger)}
+.chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.type{font-size:11px;font-weight:600;color:var(--gold2);letter-spacing:.04em}
+.muted{color:var(--muted)}.t{font-size:16px;font-weight:700;line-height:1.3}
+.media{display:flex;gap:6px}.ph{flex:0 0 78%;aspect-ratio:4/3;border-radius:12px;background:linear-gradient(135deg,#2a2f3d,#1a1e28)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.price{font-size:20px;font-weight:700;color:var(--gold2)}.iso{font-size:11px;color:var(--muted);margin-inline-start:4px}
+.btn{display:block;text-align:center;padding:10px;border-radius:12px;font-weight:600;font-size:14px;border:1px solid transparent}
+.btn.gold{background:var(--gold);color:var(--goldInk)}.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn.off{opacity:.45}.btn.spin{position:relative}
+.btn.spin::after{content:"";position:absolute;inset-inline-end:14px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid var(--goldInk);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.btn.spin::after{animation:none;border-top-color:var(--goldInk);opacity:.5}}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.sheet{
+  position:absolute;inset-inline:0;bottom:0;background:var(--surface);
+  border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+  padding:12px 14px 16px;display:flex;flex-direction:column;gap:10px;max-height:78%;
+}
+.sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--line);align-self:center}
+.sheet h3{margin:0;font-size:16px;font-weight:700}
+.sheet .sub{font-size:12px;color:var(--muted);line-height:1.4;margin:0}
+.list{display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:120px;max-height:260px}
+.cand{
+  display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;
+  border:1px solid var(--line);background:var(--bg2);
+}
+.cand.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.cand .av{width:36px;height:36px}
+.cand .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cand .meta b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cand .meta span{font-size:11px;color:var(--muted)}
+.radio{
+  width:22px;height:22px;border-radius:50%;border:2px solid var(--muted);flex:none;
+}
+.cand.sel .radio{border-color:var(--gold);background:var(--gold);display:grid;place-items:center}
+.cand.sel .radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--goldInk)}
+.actions{display:flex;gap:8px}.actions .btn{flex:1}
+.ban{font-size:12px;padding:8px 10px;text-align:center;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.ban.bad{color:var(--danger);border-color:rgba(248,113,113,.35)}
+.ban.off{color:var(--muted);border-color:var(--line)}
+.box{
+  border:1px dashed var(--line);border-radius:12px;padding:18px 14px;text-align:center;
+  color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center;min-height:120px;justify-content:center;
+}
+.sk{background:var(--surface2);border-radius:8px;height:12px}
+.sk-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--bg2)}
+.sk-av{width:36px;height:36px;border-radius:50%;background:var(--surface2);flex:none}
+.toast{
+  position:absolute;inset-inline:14px;bottom:14px;background:var(--surface2);
+  border:1px solid var(--gold);border-radius:12px;padding:10px;font-size:12px;z-index:3;
+}
+.trk{background:var(--bg2);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:6px;flex:none}
+.steps{display:flex;gap:4px}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;color:var(--muted);text-align:center;min-width:0}
+.st i{width:100%;height:4px;border-radius:2px;background:var(--line)}
+.st.cur i{background:var(--gold2)}.st.cur{color:var(--text);font-weight:700}
+.sys{align-self:center;max-width:90%;text-align:center;font-size:11px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;margin:10px auto}
+.scroll{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1}
+.tid{font-family:var(--mono);font-size:9px;color:var(--info);opacity:.85}
+.key{font-family:var(--mono);font-size:10px;color:var(--gold2)}
+table{border-collapse:collapse;font-size:12px;margin-top:8px}
+td,th{border:1px solid var(--line);padding:6px 8px;text-align:start;vertical-align:top}
+th{color:var(--gold2)}
+.tw{overflow-x:auto;max-width:100%}
+</style>
+</head>
+<body>
+
+<h1>DEAL-9 · Offer-accept pick buyer</h1>
+<p class="lead">
+  On a sale-class (<code>for_sale</code>) post, author <b>Mark sold</b> no longer opens the one-tap ConfirmDialog.
+  It opens a <b>pick-buyer bottom sheet</b>: candidates = distinct non-deleted comment authors (excluding seller).
+  Select one → Confirm enabled → <code>accept_sale_buyer</code> → navigate into the existing DEAL-5 deal room; post becomes sold.
+  Hebrew RTL first; one English LTR check. Tokens from <code>theme/tokens.ts</code> (INFRA-4).
+  Blue monospace labels are testIDs, not UI. Copy is i18n-backed (keys shown).
+</p>
+
+<h2>1. Before → opens picker (not the old confirm)</h2>
+<div class="grid">
+
+<div>
+  <div class="cap">Sale-class post detail, author. Same Mark sold control (<span class="key">post-detail-mark-sold</span>). Tap opens the pick-buyer sheet — never the old sold ConfirmDialog.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body">
+      <div class="row"><div class="av">ת</div><div><b>תום כהן</b><div class="muted">לפני שעתיים</div></div><span class="sp"></span><span class="badge b-act">פעיל</span></div>
+      <div class="row"><span class="chip">קבוצת Binder</span><span class="type">למכירה</span></div>
+      <div class="t">Charizard Base Set במצב מעולה</div>
+      <div class="media"><div class="ph"></div></div>
+      <div class="card"><span class="price">₪450</span><span class="iso">ILS</span></div>
+      <div class="muted">יש 3 מגיבים שמתעניינים.</div>
+      <span class="btn gold">סימון כנמכר</span>
+      <span class="tid">post-detail-mark-sold → opens sale-buyer-picker</span>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="cap">Happy path: list loaded, one candidate selected, Confirm enabled. Footer Cancel + Confirm. Selecting a row is the only way to enable Confirm.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body">
+      <div class="row"><div class="av">ת</div><div><b>תום כהן</b></div><span class="sp"></span><span class="badge b-act">פעיל</span></div>
+      <div class="t">Charizard Base Set במצב מעולה</div>
+      <div class="card"><span class="price">₪450</span><span class="iso">ILS</span></div>
+      <span class="btn gold">סימון כנמכר</span>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet" data-testid="sale-buyer-picker">
+      <span class="grab"></span>
+      <h3>בחירת קונה</h3>
+      <p class="sub">בחרו מי מהמגיבים קנה את הפריט. אחרי האישור תיפתח חדר העסקה לשניכם והפוסט יסומן כנמכר.</p>
+      <span class="tid">sale-buyer-picker · sale-buyer-picker-list</span>
+      <div class="list">
+        <div class="cand sel">
+          <div class="av">ד</div>
+          <div class="meta"><b>דנה לוי</b><span>הגיבה על הפוסט</span></div>
+          <span class="radio"></span>
+        </div>
+        <span class="tid">sale-buyer-candidate-&lt;userId&gt;</span>
+        <div class="cand">
+          <div class="av">א</div>
+          <div class="meta"><b>אבי מזרחי</b><span>הגיב על הפוסט</span></div>
+          <span class="radio"></span>
+        </div>
+        <div class="cand">
+          <div class="av">י</div>
+          <div class="meta"><b>יעל כהן</b><span>הגיבה על הפוסט</span></div>
+          <span class="radio"></span>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">ביטול</span>
+        <span class="btn gold">אישור מכירה</span>
+      </div>
+      <span class="tid">sale-buyer-picker-cancel · sale-buyer-picker-confirm</span>
+      <span class="key">deal.sale.picker.title · deal.sale.picker.confirm</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<h2>2. Loading · empty · error · offline</h2>
+<div class="grid">
+
+<div>
+  <div class="cap">Loading: skeleton rows while <code>list_sale_buyer_candidates</code> runs. Confirm stays disabled. Mark sold may show a brief spinner while the sheet mounts.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body"><div class="t">Charizard Base Set</div><div class="card"><span class="price">₪450</span></div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>בחירת קונה</h3>
+      <span class="tid">sale-buyer-picker-loading</span>
+      <div class="list">
+        <div class="sk-row"><span class="sk-av"></span><div class="sp"><div class="sk" style="width:60%;margin-bottom:6px"></div><div class="sk" style="width:40%"></div></div></div>
+        <div class="sk-row"><span class="sk-av"></span><div class="sp"><div class="sk" style="width:55%;margin-bottom:6px"></div><div class="sk" style="width:35%"></div></div></div>
+        <div class="sk-row"><span class="sk-av"></span><div class="sp"><div class="sk" style="width:50%;margin-bottom:6px"></div><div class="sk" style="width:30%"></div></div></div>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">ביטול</span>
+        <span class="btn gold off">אישור מכירה</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="cap">Empty: no comment authors (or only seller). Empty copy; Confirm disabled. Seller must wait for interest or cancel.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body"><div class="t">Charizard Base Set</div><div class="card"><span class="price">₪450</span></div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>בחירת קונה</h3>
+      <div class="box" data-testid="sale-buyer-picker-empty">
+        <b style="color:var(--text)">אין קונים לבחירה עדיין</b>
+        <span>כשמישהו יגיב על הפוסט, תוכלו לבחור אותו כאן ולסמן כנמכר.</span>
+        <span class="tid">sale-buyer-picker-empty</span>
+        <span class="key">deal.sale.picker.empty</span>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">ביטול</span>
+        <span class="btn gold off">אישור מכירה</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="cap">Load fail / timeout: inline error + Retry. Confirm disabled until a successful reload.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body"><div class="t">Charizard Base Set</div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>בחירת קונה</h3>
+      <div class="box" data-testid="sale-buyer-picker-error">
+        <b style="color:var(--danger)">לא הצלחנו לטעון את הרשימה</b>
+        <span>בדקו את החיבור ונסו שוב.</span>
+        <span class="btn ghost" style="align-self:stretch">נסה שוב</span>
+        <span class="tid">sale-buyer-picker-error · sale-buyer-picker-retry</span>
+        <span class="key">deal.sale.picker.error</span>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">ביטול</span>
+        <span class="btn gold off">אישור מכירה</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="cap">Offline: banner in the sheet; Confirm disabled; no queued writes. Same pattern as other Binder write surfaces.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body"><div class="t">Charizard Base Set</div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>בחירת קונה</h3>
+      <div class="ban off" data-testid="sale-buyer-picker-offline">אין חיבור לרשת · הפעולות מושבתות</div>
+      <span class="tid">sale-buyer-picker-offline</span>
+      <span class="key">common.offline</span>
+      <div class="list">
+        <div class="cand" style="opacity:.55"><div class="av">ד</div><div class="meta"><b>דנה לוי</b><span>הגיבה על הפוסט</span></div><span class="radio"></span></div>
+        <div class="cand" style="opacity:.55"><div class="av">א</div><div class="meta"><b>אבי מזרחי</b><span>הגיב על הפוסט</span></div><span class="radio"></span></div>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">ביטול</span>
+        <span class="btn gold off">אישור מכירה</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<h2>3. Confirm in flight → deal room</h2>
+<div class="grid">
+
+<div>
+  <div class="cap">Confirm pressed: Confirm shows spinner; list + Cancel disabled. On timeout stay on sheet with toast; retry reuses the same <code>client_request_id</code>.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body"><div class="t">Charizard Base Set</div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>בחירת קונה</h3>
+      <div class="list" style="opacity:.45;pointer-events:none">
+        <div class="cand sel"><div class="av">ד</div><div class="meta"><b>דנה לוי</b><span>הגיבה על הפוסט</span></div><span class="radio"></span></div>
+        <div class="cand"><div class="av">א</div><div class="meta"><b>אבי מזרחי</b><span>הגיב על הפוסט</span></div><span class="radio"></span></div>
+      </div>
+      <div class="actions">
+        <span class="btn ghost off">ביטול</span>
+        <span class="btn gold spin">מאשר…</span>
+      </div>
+      <span class="tid">sale-buyer-picker-confirm (busy)</span>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="cap">Success: navigate both sides into DEAL-5 deal chat (reused tracker/action bar). Post detail later shows sold badge; Mark sold gone.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><div class="av" style="width:28px;height:28px;font-size:11px">🃏</div><div class="sp"><b style="font-size:13px">Charizard Base Set במצב מעולה</b><div class="muted" style="font-size:11px;color:var(--gold2)">דנה לוי · לפוסט ›</div></div><span class="ib">⋯</span></div>
+    <div class="trk">
+      <div class="steps">
+        <div class="st cur"><i></i>פרטים</div>
+        <div class="st"><i></i>תשלום</div>
+        <div class="st"><i></i>אישור</div>
+        <div class="st"><i></i>נשלח</div>
+        <div class="st"><i></i>התקבל</div>
+      </div>
+      <span class="tid">deal-step-tracker (DEAL-5 reuse)</span>
+    </div>
+    <div class="scroll">
+      <div class="sys">העסקה נפתחה · מכירה ב-₪450</div>
+      <div class="sys" style="color:var(--ok)">הפוסט סומן כנמכר</div>
+    </div>
+    <div style="padding:8px 10px;background:var(--bg2);border-top:1px solid var(--line);display:flex;gap:8px">
+      <span class="btn gold" style="flex:1;padding:8px">שליחת פרטי קשר</span>
+      <span class="ib">⋯</span>
+    </div>
+    <span class="tid" style="padding:0 10px 8px;background:var(--bg2)">deal-action-bar · conversation_id from accept_sale_buyer</span>
+  </div>
+</div>
+
+<div>
+  <div class="cap">Post detail after sold (return path): sold badge + banner; Mark sold removed. Matches POST-4 sold state.</div>
+  <div class="phone" dir="rtl">
+    <div class="hdr"><span class="ib">›</span><b>פוסט</b><span class="ib">⋯</span></div>
+    <div class="body">
+      <div class="ban bad" style="text-align:start">נמכר · הפוסט סומן כנמכר אחרי בחירת קונה.</div>
+      <div class="row"><div class="av">ת</div><div><b>תום כהן</b></div><span class="sp"></span><span class="badge b-sold">נמכר</span></div>
+      <div class="t">Charizard Base Set במצב מעולה</div>
+      <div class="card"><span class="price">₪450</span><span class="iso">ILS</span></div>
+      <div class="muted">אין כפתור סימון כנמכר.</div>
+      <span class="tid">post-detail-mark-sold absent · status sold</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<h2>4. English LTR check</h2>
+<div class="grid">
+
+<div>
+  <div class="cap">Same selected state, LTR. Hierarchy unchanged: title → helper → single-select list → Cancel / Confirm sale.</div>
+  <div class="phone" dir="ltr">
+    <div class="hdr"><span class="ib">‹</span><b>Post</b><span class="ib">⋯</span></div>
+    <div class="body">
+      <div class="row"><div class="av">T</div><div><b>Tom Cohen</b></div><span class="sp"></span><span class="badge b-act">Active</span></div>
+      <div class="t">Charizard Base Set, near mint</div>
+      <div class="card"><span class="price">₪450</span><span class="iso">ILS</span></div>
+      <span class="btn gold">Mark as sold</span>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>Pick a buyer</h3>
+      <p class="sub">Choose which commenter bought this item. Confirm opens a deal room for both of you and marks the post sold.</p>
+      <div class="list">
+        <div class="cand sel"><div class="av">D</div><div class="meta"><b>Dana Levi</b><span>Commented on this post</span></div><span class="radio"></span></div>
+        <div class="cand"><div class="av">A</div><div class="meta"><b>Avi Mizrahi</b><span>Commented on this post</span></div><span class="radio"></span></div>
+        <div class="cand"><div class="av">Y</div><div class="meta"><b>Yael Cohen</b><span>Commented on this post</span></div><span class="radio"></span></div>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">Cancel</span>
+        <span class="btn gold">Confirm sale</span>
+      </div>
+      <span class="tid">sale-buyer-picker · sale-buyer-picker-confirm</span>
+      <span class="key">deal.sale.picker.title · deal.sale.picker.confirm</span>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="cap">EN empty + accept error toast pattern (stays on sheet; refresh candidates on ineligible codes).</div>
+  <div class="phone" dir="ltr">
+    <div class="hdr"><span class="ib">‹</span><b>Post</b><span class="ib">⋯</span></div>
+    <div class="body"><div class="t">Charizard Base Set</div></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <span class="grab"></span>
+      <h3>Pick a buyer</h3>
+      <div class="list">
+        <div class="cand sel"><div class="av">D</div><div class="meta"><b>Dana Levi</b><span>Commented on this post</span></div><span class="radio"></span></div>
+      </div>
+      <div class="actions">
+        <span class="btn ghost">Cancel</span>
+        <span class="btn gold">Confirm sale</span>
+      </div>
+    </div>
+    <div class="toast">That buyer is no longer available. The list was refreshed.<br><span class="key">deal.sale.error.buyer_ineligible → refresh candidates</span></div>
+  </div>
+</div>
+
+</div>
+
+<h2>5. Decisions locked by this mockup</h2>
+<div class="notes">
+  <p><b>Replacement, not addition:</b> sale-class Mark sold opens this sheet only. Non-sale types keep their existing confirm (or none). No intermediate “are you sure?” after Confirm — Confirm <em>is</em> the commit.</p>
+  <p><b>Single-select list:</b> radio rows (avatar + display name + quiet “commented” meta). No prices, offers, or comment snippets in MVP — candidates are people, not threads.</p>
+  <p><b>Confirm gate:</b> disabled until a candidate is selected, and while loading / empty / error / offline / accept-in-flight.</p>
+  <p><b>Navigation:</b> success → DEAL-5 deal chat via returned <code>conversation_id</code>; do not invent a new room chrome.</p>
+</div>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Surface</th><th>testIDs</th><th>i18n keys (illustrative)</th></tr></thead>
+  <tbody>
+    <tr><td>Entry</td><td><code>post-detail-mark-sold</code></td><td><code>post.detail.markSold</code></td></tr>
+    <tr><td>Sheet</td><td><code>sale-buyer-picker</code>, <code>…-list</code>, <code>…-loading</code>, <code>…-empty</code>, <code>…-error</code>, <code>…-retry</code>, <code>…-offline</code>, <code>…-cancel</code>, <code>…-confirm</code>, <code>sale-buyer-candidate-&lt;userId&gt;</code></td><td><code>deal.sale.picker.*</code>, <code>common.offline</code></td></tr>
+    <tr><td>After</td><td>DEAL-5 reuse</td><td>existing deal room keys</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p class="notes" style="margin-top:24px"><b>Developer leftovers:</b> exact He/En string polish; sheet height / max visible rows; avatar fallback glyph; whether Cancel dismisses without toast; motion on sheet present; spinner vs Progress on Confirm — spacing/animation detail OK to decide in build. Core layout and Confirm gate are fixed.</p>
+
+</body>
+</html>
